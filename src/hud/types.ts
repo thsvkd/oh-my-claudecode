@@ -623,6 +623,7 @@ export interface HudElementConfig {
   gitInfoPosition: 'above' | 'below';  // Position of git info relative to main HUD line
   model: boolean;            // Show current model name
   modelFormat: ModelFormat;   // Model name verbosity level
+  effortLevel?: boolean;      // Show reasoning-effort level next to the model name (default: true)
   omcLabel: boolean;
   updateNotification?: boolean; // Show available-update prompt text in the OMC label
   rateLimits: boolean;  // Show 5h and weekly rate limits
@@ -756,6 +757,7 @@ export const DEFAULT_HUD_CONFIG: HudConfig = {
     gitInfoPosition: 'above',  // Git info above main HUD line (backward compatible)
     model: true,              // Show only when Claude Code statusline stdin provides a model
     modelFormat: 'versioned', // Preserve model version by default
+    effortLevel: true,        // Show reasoning-effort level next to the model name
     omcLabel: true,
     updateNotification: true, // Preserve existing update prompt behavior by default
     rateLimits: true,  // Show rate limits by default
@@ -817,6 +819,7 @@ export const PRESET_CONFIGS: Record<HudPreset, Partial<HudElementConfig>> = {
     gitInfoPosition: 'above',
     model: true,
     modelFormat: 'versioned',
+    effortLevel: false,  // Keep the model line short in the minimal preset
     omcLabel: true,
     updateNotification: true,
     rateLimits: true,
@@ -860,6 +863,7 @@ export const PRESET_CONFIGS: Record<HudPreset, Partial<HudElementConfig>> = {
     gitInfoPosition: 'above',
     model: true,
     modelFormat: 'versioned',
+    effortLevel: true,
     omcLabel: true,
     updateNotification: true,
     rateLimits: true,
@@ -903,6 +907,7 @@ export const PRESET_CONFIGS: Record<HudPreset, Partial<HudElementConfig>> = {
     gitInfoPosition: 'above',
     model: true,
     modelFormat: 'versioned',
+    effortLevel: true,
     omcLabel: true,
     updateNotification: true,
     rateLimits: true,
@@ -946,6 +951,7 @@ export const PRESET_CONFIGS: Record<HudPreset, Partial<HudElementConfig>> = {
     gitInfoPosition: 'above',
     model: true,
     modelFormat: 'versioned',
+    effortLevel: true,
     omcLabel: true,
     updateNotification: true,
     rateLimits: false,
@@ -989,6 +995,7 @@ export const PRESET_CONFIGS: Record<HudPreset, Partial<HudElementConfig>> = {
     gitInfoPosition: 'above',
     model: true,
     modelFormat: 'versioned',
+    effortLevel: true,
     omcLabel: true,
     updateNotification: true,
     rateLimits: true,
