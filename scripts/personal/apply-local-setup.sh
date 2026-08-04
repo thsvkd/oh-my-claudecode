@@ -53,7 +53,14 @@ fi
   echo "# that script instead of hand-editing this block. See PERSONAL_SETUP.md."
   echo "export OMC_DEV_ROOT=\"$REPO_DIR\""
   echo "alias claude='claude --plugin-dir \"\$OMC_DEV_ROOT\"'"
-  echo "alias omc-sync='(cd \"\$OMC_DEV_ROOT\" && git fetch upstream dev && git rebase upstream/dev && npm install && npm run build && OMC_PLUGIN_ROOT=\"\$OMC_DEV_ROOT\" omc setup --plugin-dir-mode)'"
+  # IMPORTANT: setup must run through this checkout's OWN bridge/cli.cjs, not
+  # whatever \`omc\` resolves to on PATH. omc's installer copies file-based
+  # templates (e.g. the HUD cache wrapper script) via getPackageDir(), which
+  # resolves from the __dirname of the CLI binary that is actually running —
+  # it does NOT consult OMC_PLUGIN_ROOT for that. Running the globally
+  # installed \`omc\` here silently re-copies the unpatched marketplace
+  # version of the wrapper script even with OMC_PLUGIN_ROOT set correctly.
+  echo "alias omc-sync='(cd \"\$OMC_DEV_ROOT\" && git fetch upstream dev && git rebase upstream/dev && npm install && npm run build && OMC_PLUGIN_ROOT=\"\$OMC_DEV_ROOT\" node \"\$OMC_DEV_ROOT/bridge/cli.cjs\" setup --plugin-dir-mode)'"
   echo "$MARKER_END"
 } >> "$ZSHRC"
 
@@ -83,11 +90,13 @@ else
   echo "Warning: $CONFIG_DIR/settings.json not found, skipping settings merge" >&2
 fi
 
-# 3. Build and link as the active plugin.
+# 3. Build and link as the active plugin. Must run through this checkout's
+#    own bridge/cli.cjs (see the omc-sync alias comment above for why) —
+#    NOT whatever `omc` resolves to on PATH.
 cd "$REPO_DIR"
 npm install
 npm run build
-OMC_PLUGIN_ROOT="$REPO_DIR" omc setup --plugin-dir-mode
+OMC_PLUGIN_ROOT="$REPO_DIR" node "$REPO_DIR/bridge/cli.cjs" setup --plugin-dir-mode
 
 echo
 echo "Done. Restart your shell (or 'source $ZSHRC') and start a NEW Claude Code"
