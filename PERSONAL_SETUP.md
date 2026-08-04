@@ -54,6 +54,22 @@ stay on top), reinstalls deps, rebuilds, and re-links via
 manually (`git status` will show the conflicted files), then re-run
 `omc-sync` — it's a normal `git rebase`, nothing special.
 
+### ⚠️ Don't `git restore dist/ bridge/` after building for personal use
+
+`omc-hud.mjs` imports `dist/hud/index.js` directly from this checkout at
+*every* statusline call — it's a live import, not a one-time copy. If you
+run `npm run build` and then `git restore dist/ bridge/` (e.g. while
+preparing a clean diff for an upstream PR — `dist/`/`bridge/` are tracked
+but their compiled content shouldn't appear in PR diffs, per
+`CONTRIBUTING.md`), that restore **reverts the compiled output your running
+HUD is actually reading**, silently regressing patched features back to
+whatever was last committed — with no error, just missing behavior. Hit
+this exact issue once: effort-level display vanished after a commit-prep
+`git restore`, even though `dist/` had it working moments before.
+
+If you ever need to `git restore dist/ bridge/` on this checkout, run
+`npm run build` again immediately after (or just `omc-sync`).
+
 ## Re-running the setup script
 
 Safe to re-run any time (e.g. after `omc-sync`, or on a new machine after
