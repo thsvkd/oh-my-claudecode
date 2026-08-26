@@ -27,13 +27,25 @@ if [ -n "$UNEXPECTED" ]; then
   exit 1
 fi
 
+# A fresh clone of the fork only has origin. Fail with the fix rather than
+# git's "'upstream' does not appear to be a git repository".
+if ! git remote get-url upstream >/dev/null 2>&1; then
+  echo "No 'upstream' remote in this checkout." >&2
+  echo "Run scripts/personal/apply-local-setup.sh once — it adds it." >&2
+  exit 1
+fi
+
+# Fetch BEFORE discarding build output: fetching does not touch the worktree,
+# so a network failure here leaves dist/ and bridge/ exactly as they were.
+# Discarding first meant a failed fetch left the running HUD reading reverted
+# output with no rebuild coming (the hazard PERSONAL_SETUP.md warns about).
+echo "Fetching upstream/dev"
+git fetch upstream dev
+
 if ! git diff --quiet -- dist bridge || ! git diff --cached --quiet -- dist bridge; then
   echo "Discarding stale build output in dist/ and bridge/ (rebuilt below)"
   git restore --source=HEAD --staged --worktree -- dist bridge
 fi
-
-echo "Fetching upstream/dev"
-git fetch upstream dev
 
 if ! git rebase upstream/dev; then
   echo >&2
@@ -53,6 +65,13 @@ npm run build
 # silently re-copy the unpatched marketplace version of that wrapper even
 # with OMC_PLUGIN_ROOT set correctly.
 OMC_PLUGIN_ROOT="$REPO_DIR" node "$REPO_DIR/bridge/cli.cjs" setup --plugin-dir-mode
+
+# setup re-creates the standalone hook copies on machines whose settings.json
+# has no marketplace OMC entry, so prune them again here — otherwise every
+# sync would quietly undo what the bootstrap script reconciled.
+CONFIG_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+node "$REPO_DIR/scripts/personal/prune-standalone-hooks.mjs" \
+  "$CONFIG_DIR" "$REPO_DIR" "$CONFIG_DIR/settings.json"
 
 echo
 echo "Synced. Start a NEW Claude Code session to pick this up."

@@ -26,11 +26,34 @@ commits with our commits staying on top.
 ## What `apply-local-setup.sh` does
 
 See the header comment in `scripts/personal/apply-local-setup.sh` for the
-exact steps. Summary: adds a marked, idempotent block to `~/.zshrc` (an
-`OMC_DEV_ROOT` export, a `claude` alias that always passes `--plugin-dir` at
-this checkout, and an `omc-sync` alias that runs `scripts/personal/sync.sh`), merges `env.OMC_PLUGIN_ROOT` +
-`disabledMcpjsonServers: ["t"]` into `~/.claude/settings.json`, then builds
-and links this checkout via `omc setup --plugin-dir-mode`.
+exact steps. Summary: checks the tools it needs, ensures the `upstream` remote
+exists, adds a marked idempotent block to `~/.zshrc` (an `OMC_DEV_ROOT`
+export, a `claude` alias that always passes `--plugin-dir` at this checkout,
+and an `omc-sync` alias that runs `scripts/personal/sync.sh`), builds and
+links this checkout via `setup --plugin-dir-mode`, merges
+`env.OMC_PLUGIN_ROOT` + `disabledMcpjsonServers: ["t"]` into
+`~/.claude/settings.json`, prunes the standalone hook copies, and finally
+verifies every one of those landed.
+
+It is the *only* command needed on a fresh machine, and it produces the same
+result whether or not OMC was already installed there. Two details make that
+true, both of which were measured rather than assumed:
+
+- The settings.json merge runs **after** `setup`, not before. On a fresh
+  machine settings.json does not exist until setup creates it, so merging
+  first silently dropped `OMC_PLUGIN_ROOT` while the script still exited 0.
+- The standalone hook copies are pruned afterwards. The installer writes
+  `~/.claude/hooks/*` only when settings.json has no marketplace OMC entry, so
+  a fresh machine got them and an existing one did not; since this checkout is
+  always loaded through `--plugin-dir`, its `hooks/hooks.json` already
+  supplies every hook and the extra copies would fire alongside them
+  (upstream #2252). Only files this fork ships as hook templates are touched,
+  so third-party hooks in the same directory survive.
+
+The verification step exists because the failure it catches is the dangerous
+kind: a setup that reports success while leaving the checkout unlinked. If it
+reports a failure, nothing about the machine is half-configured — re-run the
+script after fixing what it named.
 
 Run it once to set up a machine:
 
@@ -48,12 +71,17 @@ keeps running whatever it started with.
 | `omc update; omc setup` | `omc-sync`   |
 | `claude`                | `claude` (unchanged — the alias makes this transparent) |
 
-`omc-sync` runs `scripts/personal/sync.sh`, which discards stale build
-output in `dist/` and `bridge/`, fetches `upstream/dev`, rebases this branch
-onto it (our commits stay on top), reinstalls deps, rebuilds, and re-links
-via this checkout's own CLI in `--plugin-dir-mode`. If the rebase hits a
-conflict, resolve it manually (`git status` will show the conflicted files),
-then re-run `omc-sync` — it's a normal `git rebase`, nothing special.
+`omc-sync` runs `scripts/personal/sync.sh`, which fetches `upstream/dev`,
+discards stale build output in `dist/` and `bridge/`, rebases this branch onto
+upstream (our commits stay on top), reinstalls deps, rebuilds, re-links via
+this checkout's own CLI in `--plugin-dir-mode`, and prunes the standalone hook
+copies that re-link recreates. If the rebase hits a conflict, resolve it
+manually (`git status` will show the conflicted files), then re-run
+`omc-sync` — it's a normal `git rebase`, nothing special.
+
+The fetch deliberately comes *before* the build output is discarded: fetching
+does not touch the worktree, so a network failure leaves `dist/` and
+`bridge/` exactly as they were rather than reverted with no rebuild coming.
 
 It refuses to start when anything outside `dist/` and `bridge/` is dirty, so
 in-progress work is never discarded on your behalf.
