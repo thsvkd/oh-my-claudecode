@@ -53,14 +53,10 @@ fi
   echo "# that script instead of hand-editing this block. See PERSONAL_SETUP.md."
   echo "export OMC_DEV_ROOT=\"$REPO_DIR\""
   echo "alias claude='claude --plugin-dir \"\$OMC_DEV_ROOT\"'"
-  # IMPORTANT: setup must run through this checkout's OWN bridge/cli.cjs, not
-  # whatever \`omc\` resolves to on PATH. omc's installer copies file-based
-  # templates (e.g. the HUD cache wrapper script) via getPackageDir(), which
-  # resolves from the __dirname of the CLI binary that is actually running —
-  # it does NOT consult OMC_PLUGIN_ROOT for that. Running the globally
-  # installed \`omc\` here silently re-copies the unpatched marketplace
-  # version of the wrapper script even with OMC_PLUGIN_ROOT set correctly.
-  echo "alias omc-sync='(cd \"\$OMC_DEV_ROOT\" && git fetch upstream dev && git rebase upstream/dev && npm install && npm run build && OMC_PLUGIN_ROOT=\"\$OMC_DEV_ROOT\" node \"\$OMC_DEV_ROOT/bridge/cli.cjs\" setup --plugin-dir-mode)'"
+  # The sync steps live in scripts/personal/sync.sh: a rebase cannot run
+  # with a dirty worktree, and dist/ + bridge/ are tracked yet rebuilt on
+  # every build, so the sequence needs conditionals an alias cannot hold.
+  echo "alias omc-sync='sh \"\$OMC_DEV_ROOT/scripts/personal/sync.sh\"'"
   echo "$MARKER_END"
 } >> "$ZSHRC"
 
