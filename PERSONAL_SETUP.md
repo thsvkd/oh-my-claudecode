@@ -55,11 +55,18 @@ kind: a setup that reports success while leaving the checkout unlinked. If it
 reports a failure, nothing about the machine is half-configured — re-run the
 script after fixing what it named.
 
-Run it once to set up a machine:
+Setting up a machine takes two commands:
 
 ```bash
-sh scripts/personal/apply-local-setup.sh
+git clone https://github.com/thsvkd/oh-my-claudecode.git
+sh oh-my-claudecode/scripts/personal/apply-local-setup.sh
 ```
+
+No branch flag is needed because **`main` on this fork is the personal
+install**, not a mirror of upstream's `main`. Our commits sit on top of
+`upstream/dev` there, so a plain clone lands on a checkout that is ready to
+bootstrap. (Upstream is tracked through the `upstream` remote and `omc-sync`,
+never through this fork's `main`.)
 
 Then start a **new** Claude Code session (or a new shell) — the current one
 keeps running whatever it started with.
